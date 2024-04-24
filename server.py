@@ -1,5 +1,6 @@
 import threading
 import time 
+import datetime
 import socket
 import random 
 from route import Route
@@ -35,7 +36,8 @@ class Server(object):
        self.list.append(route)
        random_number = random.randint(5,10) 
        time.sleep(random_number)
-       print('client {} waited to create the route {} seconds'.format(args[3],random_number))
+      #  print('client {} waited to create the route {} seconds'.format(args[3],random_number))
+       print("[{}] client {} waited to create the route {} seconds".format(datetime.datetime.now(), args[3], random_number))
        conn.sendall('Saved succesfully.\n{}\n{}'.format(k1,k2).encode('utf-8'))
 
       self.lock.release()
@@ -48,7 +50,8 @@ class Server(object):
      fly = self.search_list(code,1)
      random_number = random.randint(2,4)
      time.sleep(random_number)
-     print('client {} waited to read the route {} seconds'.format(ip,random_number))
+    #  print('client {} waited to read the route {} seconds'.format(ip,random_number))
+     print("[{}] client {} waited to read the route {} seconds".format(datetime.datetime.now(), ip, random_number))
      if fly is not None:
        conn.sendall('Found succesfully: {} {} {}\n{}\n{}'.format(fly.getCode(),fly.getState(),fly.getTime(),k1,k2).encode('utf-8'))
      else:
@@ -67,7 +70,8 @@ class Server(object):
       fly = self.search_list(code,2)
       random_number = random.randint(5,10)
       time.sleep(random_number)
-      print('client {} waited to delete the route {} seconds'.format(ip,random_number))
+      # print('client {} waited to delete the route {} seconds'.format(ip,random_number))
+      print('[{}] client {} waited to delete the route {} seconds'.format(datetime.datetime.now(), ip, random_number))
       if fly:
         conn.sendall('Route deleted succesfully!!!\n{}\n{}'.format(k1,k2).encode('utf-8'))         
       else:
@@ -118,7 +122,8 @@ class Server(object):
              self.list[index] = fly
              random_number = random.randint(5,10)      
              time.sleep(random_number)
-             print('client {} waited to update the route {} seconds'.format(ip,random_number))
+            #  print('client {} waited to update the route {} seconds'.format(ip,random_number))
+             print('[{}] client {} waited to update the route {} seconds'.format(datetime.datetime.now(), ip, random_number))
              conn.sendall('Updated sucesfully!!!\n{}\n{}'.format(k1,k2).encode('utf-8'))
 
 
@@ -164,7 +169,8 @@ class Server(object):
        elif reply == '3':
             self.update(conn,ip)
        elif reply == '5':
-            print('client {} close the connection!!!'.format(ip))
+            # print('client {} close the connection!!!'.format(ip))
+            print('[{}] client {} close the connection!!!'.format(datetime.datetime.now(), ip))
             break     
        else:
            conn.sendall('{}'.format(k4).encode('utf-8'))            
@@ -177,9 +183,11 @@ class Server(object):
         conne_socket.bind((self.ip, self.port_number))
         conne_socket.listen(5)
 
+        print("Server is running...")
+
         while True:
           conn, ip = conne_socket.accept()
-          print('client {} connect with your server'.format(ip))
+          print('[{}] client {} connect with your server'.format(datetime.datetime.now(), ip))
           threading.Thread(target=self.options,args=(conn,ip,)).start()
         conne_socket.close()
 
