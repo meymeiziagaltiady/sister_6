@@ -6,41 +6,62 @@ import random
 from route import Route
 from decorators import decorator_create,decorator_read 
 
-k1 = 'What do you want to do?'
-k2 ='Write: 1, Read: 2, Update: 3, Delete: 4, Exit: 5'
-k3 = 'Route does not exist!!!'
-k4 = 'Give a number of the options!!!'
+k1 = 'Apa yang ingin Anda lakukan?'
+k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: 5'
+k3 = 'Rute tidak ada!!!'
+k4 = 'Berikan nomor dari opsi!!!'
 
  
 
 class Server(object):
     
     def __init__(self):
-        self.ip = '26.97.66.68'
+        self.ip = 'localhost'
         self.port_number = 8999
         self.lock = threading.Lock()
         self.list = []
 
-    #Dimiourgei ena Route kai to apothikeuei  
-    @decorator_create 
-    def create(self,conn,*args):
-      for route in self.list:
-          if route.getCode() == args[0]:
-              conn.sendall('Already exist!!!.\n{}\n{}'.format(k1,k2).encode('utf-8'))
-              break
-      else:        
-       route = Route()
-       route.setcode(args[0])
-       route.setstate(args[1])
-       route.setTime(args[2])
-       self.list.append(route)
-       random_number = random.randint(5,10) 
-       time.sleep(random_number)
-      #  print('client {} waited to create the route {} seconds'.format(args[3],random_number))
-       print("[{}] client {} waited to create the route {} seconds".format(datetime.datetime.now(), args[3], random_number))
-       conn.sendall('Saved succesfully.\n{}\n{}'.format(k1,k2).encode('utf-8'))
+    # Membuat rute baru dan menyimpannya 
+    @decorator_create
+    def create(self, conn, *args):
+        code = args[0]
+        if any(route.getCode() == code for route in self.list):
+            conn.sendall('Already exists!\n{}\n{}'.format(k1, k2).encode('utf-8'))
+        else:
+            route = Route()
+            route.generate_auto_code()  # Otomatis menghasilkan kode saat objek Route baru dibuat
+            route.setcode(args[0])
+            route.setDeparture(args[1])
+            route.setTime(args[2])
+            route.setDestination(args[3])
+            route.setFlightDate(args[4])
+            self.list.append(route)
+            random_number = random.randint(5, 10)
+            time.sleep(random_number)
+            print('Client {} waited to create the route for {} seconds'.format(args[5], random_number))
+            #     # Kirim informasi rute baru ke klien
+            conn.sendall('Route created successfully!\nKode Pesawat: {}\nKode Penerbangan: {}\nDeparture: {}\nTime: {}\nDestination: {}\nFlight Date: {}\n{}\n{}'.format(
+            route.getCode(),route.generate_auto_code(), route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2).encode('utf-8'))
+            # print(route.getFlightDate)
+            # if self.validate_iso_date(args[4]):
+            #     route.setFlightDate(args[4])
+            #     self.list.append(route)
+            #     random_number = random.randint(5, 10)
+            #     time.sleep(random_number)
+            #     print('Client {} waited to create the route for {} seconds'.format(args[3], random_number))
+            #     # Kirim informasi rute baru ke klien
+            #     conn.sendall('Route created successfully!\nCode: {}\nDeparture: {}\nTime: {}\nDestination: {}\nFlight Date: {}\n{}\n{}'.format(
+            #         route.getCode(), route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2).encode('utf-8'))
+            # else:
+            #     conn.sendall('Invalid flight date format. Please enter a date in ISO format (YYYY-MM-DD).\n'
+            #                 '{}\n{}'.format(k1, k2).encode('utf-8'))
+        with open('file.txt', 'a') as file:
+            file.write('[{}] Rute berhasil dibuat oleh client {}:\nKode Pesawat: {}\nKode Penerbangan: {}\nKeberangkatan: {}\nWaktu: {}\nTujuan: {}\nTanggal Penerbangan: {}\n\n'.format(
+                datetime.datetime.now(), args[5], route.getCode(), route.generate_auto_code(), route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2))
 
-      self.lock.release()
+
+        self.lock.release()
+
 
 
     #Anazhti ama uparxei ena sugekrimeno Route kai to emfanizei
@@ -163,7 +184,7 @@ class Server(object):
           self.search(None,conn,ip) 
        elif reply == '1':
            
-           self.create(conn,None,None,None,ip)
+           self.create(conn,None,None,None,None, None, ip)
        elif reply == '4':
             self.delete_fly(conn,ip)
        elif reply == '3':

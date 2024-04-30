@@ -1,0 +1,16 @@
+[2024-05-01 06:41:05.236216] Rute berhasil dibuat oleh client ('127.0.0.1', 55689):
+Kode Pesawat: 3
+Kode Penerbangan: 3
+Keberangkatan: Lao PDR
+Waktu: 2
+Tujuan: Indonesia
+Tanggal Penerbangan: 9
+
+[2024-05-01 06:43:01.108435] Rute berhasil dibuat oleh client ('127.0.0.1', 55689):
+Kode Pesawat: 1
+Kode Penerbangan: 6
+Keberangkatan: Kamboja
+Waktu: 3
+Tujuan: Indonesia
+Tanggal Penerbangan: 3
+
