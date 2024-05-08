@@ -16,7 +16,7 @@ k4 = 'Berikan nomor dari opsi!!!'
 class Server(object):
     
     def __init__(self):
-        self.ip = 'localhost'
+        self.ip = '26.97.66.68'
         self.port_number = 8999
         self.lock = threading.Lock()
         self.list = []
@@ -199,16 +199,6 @@ class Server(object):
           print('[{}] client {} connect with your server'.format(datetime.datetime.now(), ip))
           threading.Thread(target=self.options,args=(conn,ip,)).start()
         conne_socket.close()
-
-             
-       
-
-
-    
-
-
-
-
 
 if __name__  == "__main__":
     server = Server()
