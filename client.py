@@ -5,7 +5,7 @@ import time
 class Client(object):
     
     def __init__(self):
-        self.adress = 'localhost'
+        self.socket.connect(('26.97.66.68',8999))
         self.port_number = 8999
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         
