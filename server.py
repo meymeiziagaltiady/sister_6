@@ -42,19 +42,7 @@ class Server(object):
             #     # Kirim informasi rute baru ke klien1
             conn.sendall('Route created successfully!\nKode Pesawat: {}\nKode Penerbangan: {}\nDeparture: {}\nTime: {}\nDestination: {}\nFlight Date: {}\n{}\n{}'.format(
             route.getCode(), route.auto_code, route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2).encode('utf-8'))
-            # print(route.getFlightDate)
-            # if self.validate_iso_date(args[4]):
-            #     route.setFlightDate(args[4])
-            #     self.list.append(route)
-            #     random_number = random.randint(5, 10)
-            #     time.sleep(random_number)
-            #     print('Client {} waited to create the route for {} seconds'.format(args[3], random_number))
-            #     # Kirim informasi rute baru ke klien
-            #     conn.sendall('Route created successfully!\nCode: {}\nDeparture: {}\nTime: {}\nDestination: {}\nFlight Date: {}\n{}\n{}'.format(
-            #         route.getCode(), route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2).encode('utf-8'))
-            # else:
-            #     conn.sendall('Invalid flight date format. Please enter a date in ISO format (YYYY-MM-DD).\n'
-            #                 '{}\n{}'.format(k1, k2).encode('utf-8'))
+
         with open('file.txt', 'a') as file:
             file.write('[{}] Rute berhasil dibuat oleh client {}:\nKode Pesawat: {}\nKode Penerbangan: {}\nKeberangkatan: {}\nWaktu: {}\nTujuan: {}\nTanggal Penerbangan: {}\n\n'.format(
                 datetime.datetime.now(), args[5], route.getCode(), route.auto_code, route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2))

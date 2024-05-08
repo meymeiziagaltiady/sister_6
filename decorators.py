@@ -1,3 +1,6 @@
+import re
+import datetime
+
 # Daftar negara ASEAN
 asean_countries = [
     'Brunei Darussalam',
@@ -50,9 +53,17 @@ def decorator_create(func):
             else:
                 args[1].sendall('Pilihan keberangkatan tidak valid. Silakan pilih lagi.\n'.encode('utf-8'))  # Kirim pesan ke klien
                 choice_dep = int(args[1].recv(1204).decode('utf-8'))  # Terima pesan dari klien
-
-        args[1].sendall('Input Waktu Keberangkatan: '.encode('utf-8'))  # Kirim pesan ke klien
+        
+        args[1].sendall('Input Waktu Keberangkatan (HH:MM): '.encode('utf-8'))  # Kirim pesan ke klien
         waktu_keberangkatan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
+        # Validasi format jam
+        time_pattern = re.compile(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        while not time_pattern.match(waktu_keberangkatan):
+            args[1].sendall('Invalid time format. Please enter the time in HH:MM format.\n'
+                            'Input Waktu Keberangkatan (HH:MM): '.encode('utf-8'))  # Kirim pesan ke klien
+            waktu_keberangkatan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
         list_args[4] = waktu_keberangkatan
 
         destination_message = ""
@@ -73,8 +84,16 @@ def decorator_create(func):
                 args[1].sendall('Pilihan destinasi tidak valid. Silakan pilih lagi.\n'.encode('utf-8'))  # Kirim pesan ke klien
                 choice_dest = int(args[1].recv(1204).decode('utf-8')) 
 
-        args[1].sendall('Input Jadwal Penerbangan: '.encode('utf-8'))  # Kirim pesan ke klien
+        args[1].sendall('Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
         jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
+        # Validasi format tanggal ISO untuk jadwal penerbangan
+        iso_date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+        while not iso_date_pattern.match(jadwal_penerbangan):
+            args[1].sendall('Invalid flight date format. Please enter a date in ISO format (YYYY-MM-DD).\n'
+                            'Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
+            jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
         list_args[6] = jadwal_penerbangan
 
         t = tuple(list_args)
