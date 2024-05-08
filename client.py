@@ -5,14 +5,14 @@ import time
 class Client(object):
     
     def __init__(self):
-        self.socket.connect(('26.97.66.68',8999))
+        self.socket.connect(('localhost',8999))
         self.port_number = 8999
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         
 
     #Dhmiourgei sundesei me ton server, antalasei mhnumata kai telos aposundeaite
     def connect(self):
-      self.socket.connect(('localhost',8999))
+      self.socket.connect(('26.97.66.68',8999))
       while True:
         
          option = input('Type: ')
