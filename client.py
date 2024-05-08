@@ -17,7 +17,7 @@ class Client(object):
         
          option = input('Type: ')
          self.socket.sendall(option.encode('utf-8'))
-         if option == '5':
+         if option == 'x':
              sys.exit()
          reply = self.socket.recv(1204).decode('utf-8')
          print(reply)

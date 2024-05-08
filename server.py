@@ -29,19 +29,19 @@ class Server(object):
             conn.sendall('Already exists!\n{}\n{}'.format(k1, k2).encode('utf-8'))
         else:
             route = Route()
-            route.generate_auto_code()  # Otomatis menghasilkan kode saat objek Route baru dibuat
             route.setcode(args[0])
             route.setDeparture(args[1])
             route.setTime(args[2])
             route.setDestination(args[3])
             route.setFlightDate(args[4])
+            route.auto_code = Route.generate_auto_code()  # Menghasilkan kode otomatis
             self.list.append(route)
             random_number = random.randint(5, 10)
             time.sleep(random_number)
             print('Client {} waited to create the route for {} seconds'.format(args[5], random_number))
-            #     # Kirim informasi rute baru ke klien
+            #     # Kirim informasi rute baru ke klien1
             conn.sendall('Route created successfully!\nKode Pesawat: {}\nKode Penerbangan: {}\nDeparture: {}\nTime: {}\nDestination: {}\nFlight Date: {}\n{}\n{}'.format(
-            route.getCode(),route.generate_auto_code(), route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2).encode('utf-8'))
+            route.getCode(), route.auto_code, route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2).encode('utf-8'))
             # print(route.getFlightDate)
             # if self.validate_iso_date(args[4]):
             #     route.setFlightDate(args[4])
@@ -57,7 +57,7 @@ class Server(object):
             #                 '{}\n{}'.format(k1, k2).encode('utf-8'))
         with open('file.txt', 'a') as file:
             file.write('[{}] Rute berhasil dibuat oleh client {}:\nKode Pesawat: {}\nKode Penerbangan: {}\nKeberangkatan: {}\nWaktu: {}\nTujuan: {}\nTanggal Penerbangan: {}\n\n'.format(
-                datetime.datetime.now(), args[5], route.getCode(), route.generate_auto_code(), route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2))
+                datetime.datetime.now(), args[5], route.getCode(), route.auto_code, route.getDeparture(), route.getTime(), route.getDestination(), route.getFlightDate(), k1, k2))
 
 
         self.lock.release()
