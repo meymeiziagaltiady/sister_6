@@ -26,6 +26,7 @@ def decorator_read(func):
         return func(*t)  # Panggil fungsi yang diberikan dan kembalikan hasilnya
     return inner
 
+
 # Decorator untuk membuat rute baru
 def decorator_create(func):
     def inner(*args):
@@ -84,6 +85,7 @@ def decorator_create(func):
                 args[1].sendall('Pilihan destinasi tidak valid. Silakan pilih lagi.\n'.encode('utf-8'))  # Kirim pesan ke klien
                 choice_dest = int(args[1].recv(1204).decode('utf-8')) 
 
+
         args[1].sendall('Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
         jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
 
@@ -93,6 +95,15 @@ def decorator_create(func):
             args[1].sendall('Invalid flight date format. Please enter a date in ISO format (YYYY-MM-DD).\n'
                             'Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
             jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
+        # Validasi tanggal penerbangan lebih besar dari tanggal sistem
+        today_date = datetime.date.today()
+        flight_date = datetime.datetime.strptime(jadwal_penerbangan, '%Y-%m-%d').date()
+        while flight_date <= today_date:
+            args[1].sendall('Invalid flight date. Flight date should be greater than today\'s date.\n'
+                            'Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
+            jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+            flight_date = datetime.datetime.strptime(jadwal_penerbangan, '%Y-%m-%d').date()
 
         list_args[6] = jadwal_penerbangan
 
