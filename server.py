@@ -5,14 +5,14 @@ import socket
 import random
 import json
 import os
+import pandas as pd
 from route import Route
 from decorators import decorator_create, decorator_read
 
 k1 = 'Apa yang ingin Anda lakukan?'
-k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: 5'
+k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: x'
 k3 = 'Rute tidak ada!!!'
 k4 = 'Berikan nomor dari opsi!!!'
-
 
 class Server(object):
     last_auto_code = 0
@@ -27,71 +27,100 @@ class Server(object):
         self.port_number = 8999
         self.lock = threading.Lock()
         self.list = []
+        self.load_existing_routes()
+
+    def load_existing_routes(self):
+        filename = 'route.json'
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            try:
+                existing_data = pd.read_json(filename, orient='records')
+                for _, row in existing_data.iterrows():
+                    route = Route()
+                    route.setcode(row['Kode Pesawat'])
+                    route.setDeparture(row['Negara Keberangkatan'])
+                    route.setTime(row['Waktu Penerbangan'])
+                    route.setDestination(row['Negara Destinasi'])
+                    route.setFlightDate(row['Tanggal Penerbangan'])
+                    route.auto_code = int(row['Kode Penerbangan'][3:])  # Mengambil bagian numerik dari Kode Penerbangan
+                    self.list.append(route)
+                    Server.last_auto_code = max(Server.last_auto_code, route.auto_code)
+            except Exception as e:
+                print(f'Gagal memuat rute dari {filename}: {e}')
+
+    def save_to_json(self, data, filename):
+        try:
+            # Membuat DataFrame dari data baru
+            df = pd.DataFrame([data])
+
+            # Memeriksa apakah file sudah ada atau belum
+            if not os.path.exists(filename):
+                # File belum ada, tulis DataFrame ke file JSON dengan indentasi
+                df.to_json(filename, orient='records', indent=4)
+            else:
+                # File sudah ada, baca konten file dan gabungkan dengan data baru
+                existing_data = pd.read_json(filename, orient='records') if os.path.getsize(filename) > 0 else pd.DataFrame([])
+                new_data = pd.concat([existing_data, df], ignore_index=True)
+                new_data.to_json(filename, orient='records', indent=4)
+
+            print(f'Data berhasil disimpan ke {filename}!')
+        except Exception as e:
+            print(f'Gagal menyimpan data ke {filename}: {e}')
 
     @decorator_create
     def create(self, conn, *args):
         code = args[0]
-        if any(route.getCode() == code for route in self.list):
-            conn.sendall(f'Already exists!\n{k1}\n{k2}'.encode('utf-8'))
+        route = Route()
+        route.setcode(args[0])
+        route.setDeparture(args[1])
+        route.setTime(args[2])
+        route.setDestination(args[3])
+        route.setFlightDate(args[4])
+        
+        # Mencari kode negara berdasarkan destinasi
+        country_codes = {
+            'Brunei Darussalam': 'BWN',
+            'Kamboja': 'KHM',
+            'Indonesia': 'IDN',
+            'Lao PDR': 'LAO',
+            'Malaysia': 'MYS',
+            'Myanmar': 'MMR',
+            'Filipina': 'PHL',
+            'Singapura': 'SIN',
+            'Thailand': 'THA',
+            'Vietnam': 'VNM'
+        }
+        destination_country = args[3]
+        if destination_country in country_codes:
+            country_code = country_codes[destination_country]
         else:
-            route = Route()
-            route.setcode(args[0])
-            route.setDeparture(args[1])
-            route.setTime(args[2])
-            route.setDestination(args[3])
-            route.setFlightDate(args[4])
-            route.auto_code = Server.generate_auto_code()  # Menghasilkan kode otomatis
-            self.list.append(route)
-            random_number = random.randint(5, 10)
-            time.sleep(random_number)
-            print(f'Client {args[5]} waited to create the route for {random_number} seconds')
+            country_code = 'UNK'  # Jika negara tidak ditemukan, gunakan kode "UNK"
 
-            try:
-                # Simpan data rute ke file JSON
-                data = {
-                    'timestamp': datetime.datetime.now().isoformat(),
-                    'client_id': args[5],
-                    'Kode Penerbangan': route.auto_code,
-                    'Kode Pesawat': route.getCode(),
-                    'departure': route.getDeparture(),
-                    'time': route.getTime(),
-                    'destination': route.getDestination(),
-                    'flight_date': route.getFlightDate()
-                }
-                self.save_to_json(data, 'route.json')
-                conn.sendall(f'Route created successfully and data saved to JSON file!\nKode Pesawat: {route.getCode()}\nKode Penerbangan: {route.auto_code}\nDeparture: {route.getDeparture()}\nTime: {route.getTime()}\nDestination: {route.getDestination()}\nFlight Date: {route.getFlightDate()}\n{k1}\n{k2}'.encode('utf-8'))
-            except Exception as e:
-                conn.sendall(f'Failed to save route data to JSON file! Please try again.\n{k1}\n{k2}'.encode('utf-8'))
-                print('Failed to save route data to JSON file:', e)
+        # Menghasilkan kode auto-generate dengan basis kode negara dan kode terakhir
+        new_code = f'{country_code}{Server.generate_auto_code():03d}'
+        route.auto_code = new_code  # Set kode otomatis
+
+        self.list.append(route)
+        print(f'Client {args[5]} Membuat Rute Baru')
+
+        try:
+            data = {
+                'timestamp': datetime.datetime.now().isoformat(),
+                'client_id': args[5],
+                'Kode Penerbangan': new_code,  # Menggunakan kode otomatis
+                'Kode Pesawat': route.getCode(),
+                'Negara Keberangkatan': route.getDeparture(),
+                'Waktu Penerbangan': route.getTime(),
+                'Negara Destinasi': route.getDestination(),
+                'Tanggal Penerbangan': route.getFlightDate()
+            }
+
+            self.save_to_json(data, 'route.json')
+            conn.sendall(f'Rute Berhasi dibuat dan data disimpan tke JSON file!\nKode Pesawat: {route.getCode()}\nKode Penerbangan: {new_code}\nNegara Keberangkatan: {route.getDeparture()}\nWaktu Penerbangan: {route.getTime()}\nNegara Destinasi: {route.getDestination()}\nTanggal Penerbangan: {route.getFlightDate()}\n{k1}\n{k2}'.encode('utf-8'))
+        except Exception as e:
+            conn.sendall(f'Gagal Menyimpan ke dalam File JSON! Tolong Coba Lagi.\n{k1}\n{k2}'.encode('utf-8'))
+            print('Rute gagal tersimpan ke dalam file JSON:', e)
 
         self.lock.release()
-
-    def save_to_json(self, data, filename):
-      try:
-          if not os.path.exists(filename):
-              with open(filename, 'w') as file:
-                  # File belum ada, tulis tanda kurung siku buka
-                  file.write('[\n')
-                  json.dump(data, file, indent=2)
-                  file.write('\n]')
-          else:
-              # File sudah ada, baca konten file dan simpan dalam list
-              with open(filename, 'r+') as file:
-                  file.seek(0, os.SEEK_END)
-                  file.seek(file.tell() - 1, os.SEEK_SET)
-                  file.truncate()  # Hapus tanda kurung siku tutup terakhir
-                  file.write(',\n')  # Tambahkan koma sebagai pemisah
-                  json.dump(data, file, indent=2)
-                  file.write('\n]')  # Tulis tanda kurung siku tutup terbaru
-
-          print(f'Data saved to {filename} successfully!')
-      except Exception as e:
-          print(f'Failed to save data to {filename}: {e}')
-
-
-
-
-
 
 
     #Anazhti ama uparxei ena sugekrimeno Route kai to emfanizei
@@ -244,16 +273,6 @@ class Server(object):
 
              
        
-
-
-    
-
-
-
-
-
 if __name__  == "__main__":
     server = Server()
     server.connect_to_client()
-
-

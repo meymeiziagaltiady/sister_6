@@ -15,7 +15,7 @@ class Client(object):
       self.socket.connect(('localhost',8999))
       while True:
         
-         option = input('Type: ')
+         option = input()
          self.socket.sendall(option.encode('utf-8'))
          if option == 'x':
              sys.exit()
@@ -32,7 +32,7 @@ class Client(object):
 def message():
     print('Hello Horanghae Air Group!!!')
     print('Apa yang ingin Anda lakukan?')
-    print('Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: 5')
+    print('Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: x')
 
 if __name__ == "__main__":
     message()
