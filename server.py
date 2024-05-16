@@ -23,7 +23,7 @@ class Server(object):
         return cls.last_auto_code
 
     def __init__(self):
-        self.ip = 'localhost'
+        self.ip = '26.97.66.68'
         self.port_number = 8999
         self.lock = threading.Lock()
         self.list = []
@@ -271,8 +271,6 @@ class Server(object):
           threading.Thread(target=self.options,args=(conn,ip,)).start()
         conne_socket.close()
 
-             
-       
 if __name__  == "__main__":
     server = Server()
     server.connect_to_client()
