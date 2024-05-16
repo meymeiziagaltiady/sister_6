@@ -26,21 +26,29 @@ def decorator_read(func):
         return func(*t)  # Panggil fungsi yang diberikan dan kembalikan hasilnya
     return inner
 
+
 # Decorator untuk membuat rute baru
 def decorator_create(func):
     def inner(*args):
         list_args = list(args)
         args[0].lock.acquire()  # Kunci server
-        
-        args[1].sendall('Input Kode Pesawat: '.encode('utf-8'))  # Kirim pesan ke klien
-        kode_pesawat = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
-        list_args[2] = kode_pesawat
 
+        args[1].sendall('Input Kode Pesawat (Contoh: ID-01): '.encode('utf-8'))  # Kirim pesan ke klien
+        kode_pesawat = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
+        # Validasi format kode pesawat (dua huruf dan angka)
+        kode_pattern = re.compile(r'^[A-Z]{2}-\d{2}$')
+        while not kode_pattern.match(kode_pesawat):
+            args[1].sendall('Format kode penerbangan tidak valid. Silakan masukkan kode dalam format seperti ID-01.\n'
+                            'Input Kode Pesawat (Contoh: ID-01): '.encode('utf-8'))  # Kirim pesan ke klien
+            kode_pesawat = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
+        list_args[2] = kode_pesawat
         countries_message = ""
         for index, country in enumerate(asean_countries, start=1):
             countries_message += f"{index}. {country}\n"
 
-        countries_message += "Input Negara Keberangkatan:\n"
+        countries_message += "Input Negara Keberangkatan:"
 
         args[1].sendall(countries_message.encode('utf-8'))  # Kirim pesan ke klien
         choice_dep = int(args[1].recv(1204).decode('utf-8'))  # Terima pesan dari klien
@@ -60,7 +68,7 @@ def decorator_create(func):
         # Validasi format jam
         time_pattern = re.compile(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
         while not time_pattern.match(waktu_keberangkatan):
-            args[1].sendall('Invalid time format. Please enter the time in HH:MM format.\n'
+            args[1].sendall('Format waktu tidak valid. Harap masukkan waktu dalam format HH:MM.\n'
                             'Input Waktu Keberangkatan (HH:MM): '.encode('utf-8'))  # Kirim pesan ke klien
             waktu_keberangkatan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
 
@@ -70,7 +78,7 @@ def decorator_create(func):
         destination_options = [country for country in asean_countries if country != departure]
         for index, country in enumerate(destination_options, start=1):
             destination_message += f"{index}. {country}\n"
-        destination_message += "Input Negara Destinasi:\n"
+        destination_message += "Input Negara Destinasi:"
 
         args[1].sendall(destination_message.encode('utf-8'))  # Kirim pesan ke klien
         choice_dest = int(args[1].recv(1204).decode('utf-8'))  # Terima pesan dari klien
@@ -84,15 +92,25 @@ def decorator_create(func):
                 args[1].sendall('Pilihan destinasi tidak valid. Silakan pilih lagi.\n'.encode('utf-8'))  # Kirim pesan ke klien
                 choice_dest = int(args[1].recv(1204).decode('utf-8')) 
 
-        args[1].sendall('Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
+
+        args[1].sendall('Input Jadwal Penerbangan (YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
         jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
 
         # Validasi format tanggal ISO untuk jadwal penerbangan
         iso_date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
         while not iso_date_pattern.match(jadwal_penerbangan):
-            args[1].sendall('Invalid flight date format. Please enter a date in ISO format (YYYY-MM-DD).\n'
-                            'Input Jadwal Penerbangan (ISO date - YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
+            args[1].sendall('Format tanggal penerbangan tidak valid. Harap masukkan tanggal dalam format YYYY-MM-DD.\n'
+                            'Input Jadwal Penerbangan (YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
             jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+
+        # Validasi tanggal penerbangan lebih besar dari tanggal sistem
+        today_date = datetime.date.today()
+        flight_date = datetime.datetime.strptime(jadwal_penerbangan, '%Y-%m-%d').date()
+        while flight_date <= today_date:
+            args[1].sendall('Tanggal penerbangan tidak valid. Tanggal penerbangan harus lebih besar dari tanggal hari ini.\n'
+                            'Input Jadwal Penerbangan (YYYY-MM-DD): '.encode('utf-8'))  # Kirim pesan ke klien
+            jadwal_penerbangan = args[1].recv(1204).decode('utf-8')  # Terima pesan dari klien
+            flight_date = datetime.datetime.strptime(jadwal_penerbangan, '%Y-%m-%d').date()
 
         list_args[6] = jadwal_penerbangan
 
