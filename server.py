@@ -7,10 +7,10 @@ import json
 import os
 import pandas as pd
 from route import Route
-from decorators import decorator_create, decorator_read
+from decorators import decorator_create
 
 k1 = 'Apa yang ingin Anda lakukan?'
-k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: x'
+k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Cari: 5, Keluar: x'
 k3 = 'Rute tidak ada!!!'
 k4 = 'Berikan nomor dari opsi!!!'
 
@@ -23,7 +23,7 @@ class Server(object):
         return cls.last_auto_code
 
     def __init__(self):
-        self.ip = '26.97.66.68'
+        self.ip = '26.70.35.39'
         self.port_number = 8999
         self.lock = threading.Lock()
         self.list = []
@@ -100,7 +100,7 @@ class Server(object):
         route.auto_code = new_code  # Set kode otomatis
 
         self.list.append(route)
-        print(f'Client {args[5]} Membuat Rute Baru')
+        print(f"[{datetime.datetime.now()}] Client {args[5]} Membuat Rute Baru")
 
         try:
             data = {
@@ -115,7 +115,7 @@ class Server(object):
             }
 
             self.save_to_json(data, 'route.json')
-            conn.sendall(f'Rute Berhasi dibuat dan data disimpan tke JSON file!\nKode Pesawat: {route.getCode()}\nKode Penerbangan: {new_code}\nNegara Keberangkatan: {route.getDeparture()}\nWaktu Penerbangan: {route.getTime()}\nNegara Destinasi: {route.getDestination()}\nTanggal Penerbangan: {route.getFlightDate()}\n{k1}\n{k2}'.encode('utf-8'))
+            conn.sendall(f'Rute Berhasi dibuat dan data disimpan tke JSON file!\nKode Pesawat: {route.getCode()}\nKode Penerbangan: {new_code}\nNegara Keberangkatan: {route.getDeparture()}\nWaktu Penerbangan: {route.getTime()}\nNegara Destinasi: {route.getDestination()}\nTanggal Penerbangan: {route.getFlightDate()}\n\n{k1}\n{k2}'.encode('utf-8'))
         except Exception as e:
             conn.sendall(f'Gagal Menyimpan ke dalam File JSON! Tolong Coba Lagi.\n{k1}\n{k2}'.encode('utf-8'))
             print('Rute gagal tersimpan ke dalam file JSON:', e)
@@ -123,21 +123,39 @@ class Server(object):
         self.lock.release()
 
 
-    #Anazhti ama uparxei ena sugekrimeno Route kai to emfanizei
-    @decorator_read
-    def search(self,code,conn,ip):
-     
-     fly = self.search_list(code,1)
-     random_number = random.randint(2,4)
-     time.sleep(random_number)
-    #  print('client {} waited to read the route {} seconds'.format(ip,random_number))
-     print("[{}] client {} waited to read the route {} seconds".format(datetime.datetime.now(), ip, random_number))
-     if fly is not None:
-       conn.sendall('Found succesfully: {} {} {}\n{}\n{}'.format(fly.getCode(),fly.getState(),fly.getTime(),k1,k2).encode('utf-8'))
-     else:
-       conn.sendall('{}\n{}\n{}'.format(k3,k1,k2).encode('utf-8'))
+    def search(self, conn, ip):
+        try:
+            conn.sendall('Masukkan kode penerbangan: '.encode('utf-8'))
+            code = conn.recv(1024).decode('utf-8').strip()
 
-     self.lock.release()
+            with self.lock:
+                with open('route.json', 'r') as file:
+                    routes = json.load(file)
+                    found_route = None
+                    for route in routes:
+                        if route['Kode Penerbangan'] == code:
+                            found_route = route
+                            break
+
+            random_number = random.randint(2, 4)
+            print("[{}] Client {} Mencari Rute".format(datetime.datetime.now(), ip))
+
+            if found_route:
+                response = f"Found successfully:\n"
+                response += f"Kode Penerbangan: {found_route['Kode Penerbangan']}\n"
+                response += f"Kode Pesawat: {found_route['Kode Pesawat']}\n"
+                response += f"Negara Keberangkatan: {found_route['Negara Keberangkatan']}\n"
+                response += f"Waktu Penerbangan: {found_route['Waktu Penerbangan']}\n"
+                response += f"Negara Destinasi: {found_route['Negara Destinasi']}\n"
+                response += f"Tanggal Penerbangan: {found_route['Tanggal Penerbangan']}\n"
+                response += f"\n{k1}\n{k2}"
+                conn.sendall(response.encode('utf-8'))
+            else:
+                conn.sendall(f"{k3}\n{k1}\n{k2}".encode('utf-8'))
+
+        except Exception as e:
+            print(f'Gagal mencari data dari file JSON: {e}')
+            conn.sendall(f'Gagal mencari data dari file JSON: {e}\n{k1}\n{k2}'.encode('utf-8'))
      
 
     #Diagrafei ena Route ama uparxei
@@ -228,10 +246,29 @@ class Server(object):
               if route.getCode() == code:
                 return route, index
             return None,-1 
-              
+
+    def read_all(self, conn, ip):
+      try:
+          with open('route.json', 'r') as file:
+              routes = json.load(file)
+              if routes:
+                  response = "Daftar Rute:\n"
+                  for route in routes:
+                      response += f"Kode Penerbangan: {route['Kode Penerbangan']}\n"
+                      response += f"Kode Pesawat: {route['Kode Pesawat']}\n"
+                      response += f"Negara Keberangkatan: {route['Negara Keberangkatan']}\n"
+                      response += f"Waktu Penerbangan: {route['Waktu Penerbangan']}\n"
+                      response += f"Negara Destinasi: {route['Negara Destinasi']}\n"
+                      response += f"Tanggal Penerbangan: {route['Tanggal Penerbangan']}\n"
+                      response += f"\n{k1}\n{k2}"
+                  conn.sendall(response.encode('utf-8'))
+              else:
+                  conn.sendall(f"{k3}\n{k1}\n{k2}".encode('utf-8'))
+          print("[{}] Client {} Melihat Rute".format(datetime.datetime.now(), ip))
+      except Exception as e:
+          print(f'Gagal membaca data dari file JSON: {e}')          
 
 
-    #Analogos me to ti thelei na kanei o client ektelei thn katallhlh methodo
     def options(self,conn,ip):
       
      while True:       
@@ -240,7 +277,7 @@ class Server(object):
        
               
        if reply == '2':
-          self.search(None,conn,ip) 
+          self.read_all(conn, ip) 
        elif reply == '1':
            
            self.create(conn,None,None,None,None, None, ip)
@@ -249,8 +286,7 @@ class Server(object):
        elif reply == '3':
             self.update(conn,ip)
        elif reply == '5':
-            # print('client {} close the connection!!!'.format(ip))
-            print('[{}] client {} close the connection!!!'.format(datetime.datetime.now(), ip))
+            self.search(conn, ip)
             break     
        else:
            conn.sendall('{}'.format(k4).encode('utf-8'))            
