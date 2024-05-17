@@ -12,7 +12,7 @@ class Client(object):
 
     #Dhmiourgei sundesei me ton server, antalasei mhnumata kai telos aposundeaite
     def connect(self):
-      self.socket.connect(('localhost',8999))
+      self.socket.connect(('26.70.35.39',8999))
       while True:
         
          option = input()
@@ -32,7 +32,7 @@ class Client(object):
 def message():
     print('Hello Horanghae Air Group!!!')
     print('Apa yang ingin Anda lakukan?')
-    print('Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Keluar: x')
+    print('Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Cari: 5, Keluar: x')
 
 if __name__ == "__main__":
     message()
