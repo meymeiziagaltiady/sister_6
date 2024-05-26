@@ -23,7 +23,7 @@ class Server(object):
         return cls.last_auto_code
 
     def __init__(self):
-        self.ip = '26.70.35.39'
+        self.ip = '26.97.66.68'
         self.port_number = 8999
         self.lock = threading.Lock()
         self.list = []
@@ -65,6 +65,18 @@ class Server(object):
             print(f'Data berhasil disimpan ke {filename}!')
         except Exception as e:
             print(f'Gagal menyimpan data ke {filename}: {e}')
+
+    def delete_from_json(self, code, filename):
+        try:
+            if os.path.exists(filename) and os.path.getsize(filename) > 0:
+                existing_data = pd.read_json(filename, orient='records')
+                new_data = existing_data[existing_data['Kode Penerbangan'] != code]
+                new_data.to_json(filename, orient='records', indent=4)
+                print(f'Data berhasil dihapus dari {filename}!')
+            else:
+                print(f'File {filename} tidak ditemukan atau kosong.')
+        except Exception as e:
+            print(f'Gagal menghapus data dari {filename}: {e}')
 
     @decorator_create
     def create(self, conn, *args):
@@ -115,7 +127,7 @@ class Server(object):
             }
 
             self.save_to_json(data, 'route.json')
-            conn.sendall(f'Rute Berhasi dibuat dan data disimpan tke JSON file!\nKode Pesawat: {route.getCode()}\nKode Penerbangan: {new_code}\nNegara Keberangkatan: {route.getDeparture()}\nWaktu Penerbangan: {route.getTime()}\nNegara Destinasi: {route.getDestination()}\nTanggal Penerbangan: {route.getFlightDate()}\n\n{k1}\n{k2}'.encode('utf-8'))
+            conn.sendall(f'Rute Berhasi dibuat dan data disimpan ke JSON file!\nKode Pesawat: {route.getCode()}\nKode Penerbangan: {new_code}\nNegara Keberangkatan: {route.getDeparture()}\nWaktu Penerbangan: {route.getTime()}\nNegara Destinasi: {route.getDestination()}\nTanggal Penerbangan: {route.getFlightDate()}\n\n{k1}\n{k2}'.encode('utf-8'))
         except Exception as e:
             conn.sendall(f'Gagal Menyimpan ke dalam File JSON! Tolong Coba Lagi.\n{k1}\n{k2}'.encode('utf-8'))
             print('Rute gagal tersimpan ke dalam file JSON:', e)
@@ -158,25 +170,31 @@ class Server(object):
             conn.sendall(f'Gagal mencari data dari file JSON: {e}\n{k1}\n{k2}'.encode('utf-8'))
      
 
-    #Diagrafei ena Route ama uparxei
-    def delete_fly(self,conn,ip):
+    def delete(self, conn, ip):
+        try:
+            conn.sendall('Masukkan kode penerbangan yang ingin dihapus: '.encode('utf-8'))
+            code = conn.recv(1024).decode('utf-8').strip()
 
-      self.lock.acquire()
+            with self.lock:
+                # Baca rute dari file JSON
+                with open('route.json', 'r') as file:
+                    routes = json.load(file)
+                    new_routes = [route for route in routes if route['Kode Penerbangan'] != code]
 
-      conn.sendall('dwse code: '.encode('utf-8'))          
-      code = conn.recv(1204).decode('utf-8')
-      fly = self.search_list(code,2)
-      random_number = random.randint(5,10)
-      time.sleep(random_number)
-      # print('client {} waited to delete the route {} seconds'.format(ip,random_number))
-      print('[{}] client {} waited to delete the route {} seconds'.format(datetime.datetime.now(), ip, random_number))
-      if fly:
-        conn.sendall('Route deleted succesfully!!!\n{}\n{}'.format(k1,k2).encode('utf-8'))         
-      else:
-        conn.sendall('{}\n{}\n{}'.format(k3,k1,k2).encode('utf-8'))
+                # Periksa apakah ada perubahan pada daftar rute
+                if len(new_routes) < len(routes):
+                    # Tulis kembali rute yang tersisa ke file JSON
+                    with open('route.json', 'w') as file:
+                        json.dump(new_routes, file, indent=4)
+                    conn.sendall(f'Rute dengan Kode Penerbangan {code} berhasil dihapus.\n{k1}\n{k2}'.encode('utf-8'))
+                    print(f"[{datetime.datetime.now()}] Client {ip} Menghapus Rute dengan Kode Penerbangan {code}")
+                else:
+                    conn.sendall(f'Rute dengan Kode Penerbangan {code} tidak ditemukan.\n{k1}\n{k2}'.encode('utf-8'))
+                    print(f"[{datetime.datetime.now()}] Client {ip} Gagal Menghapus Rute dengan Kode Penerbangan {code}")
 
-      self.lock.release()              
-
+        except Exception as e:
+            print(f'Gagal menghapus data dari file JSON: {e}')
+            conn.sendall(f'Gagal menghapus data dari file JSON: {e}\n{k1}\n{k2}'.encode('utf-8'))
 
     #kanei update sugekrimeno Route
     def update(self,conn,ip):
@@ -254,13 +272,13 @@ class Server(object):
               if routes:
                   response = "Daftar Rute:\n"
                   for route in routes:
-                      response += f"Kode Penerbangan: {route['Kode Penerbangan']}\n"
+                      response += f"\nKode Penerbangan: {route['Kode Penerbangan']}\n"
                       response += f"Kode Pesawat: {route['Kode Pesawat']}\n"
                       response += f"Negara Keberangkatan: {route['Negara Keberangkatan']}\n"
                       response += f"Waktu Penerbangan: {route['Waktu Penerbangan']}\n"
                       response += f"Negara Destinasi: {route['Negara Destinasi']}\n"
                       response += f"Tanggal Penerbangan: {route['Tanggal Penerbangan']}\n"
-                      response += f"\n{k1}\n{k2}"
+                  response += f"\n{k1}\n{k2}"
                   conn.sendall(response.encode('utf-8'))
               else:
                   conn.sendall(f"{k3}\n{k1}\n{k2}".encode('utf-8'))
@@ -282,7 +300,7 @@ class Server(object):
            
            self.create(conn,None,None,None,None, None, ip)
        elif reply == '4':
-            self.delete_fly(conn,ip)
+            self.delete(conn,ip)
        elif reply == '3':
             self.update(conn,ip)
        elif reply == '5':
@@ -292,7 +310,6 @@ class Server(object):
            conn.sendall('{}'.format(k4).encode('utf-8'))            
      conn.close()      
 
-    #Dimiourgei sundesei me ton client kai dimiourgei to thread
     def connect_to_client(self):
         conne_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         conne_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

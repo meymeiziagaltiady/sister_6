@@ -1,28 +1,28 @@
 [
     {
-        "timestamp":1715795551490,
-        "client_id":[
+        "timestamp": 0,
+        "client_id": [
             "127.0.0.1",
             49911
         ],
-        "Kode Penerbangan":"MMR001",
-        "Kode Pesawat":"ID-01",
-        "Negara Keberangkatan":"Lao PDR",
-        "Waktu Penerbangan":"09:30",
-        "Negara Destinasi":"Myanmar",
-        "Tanggal Penerbangan":"2024-12-12"
+        "Kode Penerbangan": "MMR001",
+        "Kode Pesawat": "ID-01",
+        "Negara Keberangkatan": "Lao PDR",
+        "Waktu Penerbangan": "09:30",
+        "Negara Destinasi": "Myanmar",
+        "Tanggal Penerbangan": "2024-12-12"
     },
     {
-        "timestamp":"2024-05-15T17:59:13.984399",
-        "client_id":[
+        "timestamp": 1,
+        "client_id": [
             "127.0.0.1",
             50125
         ],
-        "Kode Penerbangan":"MYS002",
-        "Kode Pesawat":"ML-04",
-        "Negara Keberangkatan":"Indonesia",
-        "Waktu Penerbangan":"09:12",
-        "Negara Destinasi":"Malaysia",
-        "Tanggal Penerbangan":"2024-12-12"
+        "Kode Penerbangan": "MYS002",
+        "Kode Pesawat": "ML-04",
+        "Negara Keberangkatan": "Indonesia",
+        "Waktu Penerbangan": "09:12",
+        "Negara Destinasi": "Malaysia",
+        "Tanggal Penerbangan": "2024-12-12"
     }
 ]

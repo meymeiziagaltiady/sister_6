@@ -2,7 +2,7 @@ class Route(object):
 
   last_code = 0
 
-  def _init__(self,code,departure,time, destination, flightDate):
+  def __init__(self):
       self.code = None
       self.departure = None
       self.time = None

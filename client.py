@@ -12,7 +12,7 @@ class Client(object):
 
     #Dhmiourgei sundesei me ton server, antalasei mhnumata kai telos aposundeaite
     def connect(self):
-      self.socket.connect(('26.70.35.39',8999))
+      self.socket.connect(('26.97.66.68',8999))
       while True:
         
          option = input()
@@ -26,8 +26,6 @@ class Client(object):
       self.socket.close()
 
 
-   
-    
 
 def message():
     print('Hello Horanghae Air Group!!!')
