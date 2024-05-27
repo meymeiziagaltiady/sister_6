@@ -8,6 +8,7 @@ import os
 import pandas as pd
 from route import Route
 from decorators import decorator_create
+import re
 
 k1 = 'Apa yang ingin Anda lakukan?'
 k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Cari: 5, Keluar: x'
@@ -134,7 +135,6 @@ class Server(object):
 
         self.lock.release()
 
-
     def search(self, conn, ip):
         try:
             conn.sendall('Masukkan kode penerbangan: '.encode('utf-8'))
@@ -168,7 +168,6 @@ class Server(object):
         except Exception as e:
             print(f'Gagal mencari data dari file JSON: {e}')
             conn.sendall(f'Gagal mencari data dari file JSON: {e}\n{k1}\n{k2}'.encode('utf-8'))
-     
 
     def delete(self, conn, ip):
         try:
@@ -196,119 +195,226 @@ class Server(object):
             print(f'Gagal menghapus data dari file JSON: {e}')
             conn.sendall(f'Gagal menghapus data dari file JSON: {e}\n{k1}\n{k2}'.encode('utf-8'))
 
-    #kanei update sugekrimeno Route
-    def update(self,conn,ip):
-        self.lock.acquire()
+    def update(self, conn, ip):
+        asean_countries = [
+            "Brunei Darussalam",
+            "Kamboja",
+            "Indonesia",
+            "Lao PDR",
+            "Malaysia",
+            "Myanmar",
+            "Filipina",
+            "Singapura",
+            "Thailand",
+            "Vietnam",
+        ]
 
-        conn.sendall('Type the code of the Route you want to update!!!'.encode('utf-8'))
-        code = conn.recv(1204).decode('utf-8')
-        fly, index = self.search_list(code,3)
-        if fly is None:
-         conn.sendall('{}'.format(k3).encode('utf-8'))
-        else:
+        try:
 
-          conn.sendall('What do you want to update??\nCode: 1, State: 2, Time: 3'.encode('utf-8'))
-          while True: 
+            conn.sendall(
+                "Masukkan kode penerbangan yang ingin diperbarui: ".encode("utf-8")
+            )
+            code = conn.recv(1024).decode("utf-8").strip()
 
-            reply = conn.recv(1204).decode('utf-8')
-            if reply.__eq__('1'):
-                self.update_field(conn,fly,index,'code',ip)
-                break
-            elif reply.__eq__('2'):
-              self.update_field(conn,fly,index,'state',ip)
-              break
-            elif reply.__eq__('3'):
-              self.update_field(conn,fly,index,'time',ip)
-              break
+            with self.lock:
+                # Baca rute dari file JSON
+                with open("route.json", "r") as file:
+                    routes = json.load(file)
+                    found_route = None
+                    for route in routes:
+                        if route["Kode Penerbangan"] == code:
+                            found_route = route
+                            break
+
+            if not found_route:
+                conn.sendall(f"{k3}\n{k1}\n{k2}".encode("utf-8"))
+                return
+
+            response = f"\nFound route:\n"
+            response += f"Kode Penerbangan: {found_route['Kode Penerbangan']}\n"
+            response += f"Kode Pesawat: {found_route['Kode Pesawat']}\n"
+            response += f"Negara Keberangkatan: {found_route['Negara Keberangkatan']}\n"
+            response += f"Waktu Penerbangan: {found_route['Waktu Penerbangan']}\n"
+            response += f"Negara Destinasi: {found_route['Negara Destinasi']}\n"
+            response += f"Tanggal Penerbangan: {found_route['Tanggal Penerbangan']}\n"
+            response += f"\nApa yang ingin diperbarui?\n1. Kode Pesawat\n2. Negara Keberangkatan\n3. Waktu Penerbangan\n4. Negara Destinasi\n5. Tanggal Penerbangan"
+            conn.sendall(response.encode("utf-8"))
+            option = conn.recv(1024).decode("utf-8").strip()
+
+            # update kode pesawat
+            if option == "1":
+                conn.sendall("Masukkan Kode Pesawat baru: (Contoh: ID-01)".encode("utf-8"))
+                kode_pesawat = conn.recv(1024).decode("utf-8").strip()
+                kode_pattern = re.compile(r"^[A-Z]{2}-\d{2}$")
+                while not kode_pattern.match(kode_pesawat):
+                    conn.sendall(                    "Format kode penerbangan tidak valid. Silakan masukkan kode dalam format seperti ID-01.\n"
+                        "Input Kode Pesawat baru (Contoh: ID-01): ".encode("utf-8"))  # Kirim pesan ke klien
+                    kode_pesawat = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
+
+                found_route["Kode Pesawat"] = kode_pesawat
+
+            # update negara keberangkatan
+            elif option == "2":
+                countries_message = "List negara SEA:\n"
+                for index, country in enumerate(asean_countries, start=1):
+                    countries_message += f"{index}. {country}\n"
+
+                countries_message += "Input Negara Keberangkatan baru:"
+
+                conn.sendall(countries_message.encode("utf-8"))  # Kirim pesan ke klien
+                choice_dep = int(conn.recv(1204).decode("utf-8"))  # Terima pesan dari klien
+
+                while True:
+                    if 1 <= choice_dep <= len(asean_countries):
+                        departure = asean_countries[choice_dep - 1]
+                        negara_keberangkatan = departure
+                        break
+                    else:
+                        conn.sendall("Pilihan keberangkatan tidak valid. Silakan pilih lagi.\n".encode("utf-8"))  # Kirim pesan ke klien
+                        choice_dep = int(conn.recv(1204).decode("utf-8"))  # Terima pesan dari klien
+
+                found_route["Negara Keberangkatan"] = negara_keberangkatan
+
+            # update waktu keberangkatan
+            elif option == "3":
+                conn.sendall("Masukkan Waktu Penerbangan baru: (HH:MM)".encode("utf-8"))
+                waktu_keberangkatan = conn.recv(1024).decode("utf-8").strip()
+                time_pattern = re.compile(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
+                # validasi format waktu
+                while not time_pattern.match(waktu_keberangkatan):
+                    conn.sendall("Format waktu tidak valid. Harap masukkan waktu dalam format HH:MM.\n"
+                        "Input Waktu Keberangkatan (HH:MM): ".encode("utf-8"))  # Kirim pesan ke klien
+                    waktu_keberangkatan = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
+
+                found_route["Waktu Penerbangan"] = waktu_keberangkatan
+
+            # update destinasi
+            elif option == "4":
+                departure = found_route["Negara Keberangkatan"]
+                destination_message = "List negara SEA:\n"
+                destination_options = [country for country in asean_countries if country != departure]
+                for index, country in enumerate(destination_options, start=1):
+                    destination_message += f"{index}. {country}\n"
+                destination_message += "Input Negara Destinasi Baru:"
+
+                conn.sendall(destination_message.encode("utf-8"))  # Kirim pesan ke klien
+                choice_dest = int(conn.recv(1204).decode("utf-8"))  # Terima pesan dari klien
+
+                while True:
+                    if 1 <= choice_dest <= len(destination_options):
+                        destination = destination_options[choice_dest - 1]
+                        negara_desitnasi = destination
+                        break
+                    else:
+                        conn.sendall("Pilihan destinasi tidak valid. Silakan pilih lagi.\n".encode("utf-8"))  # Kirim pesan ke klien
+                        choice_dest = int(conn.recv(1204).decode("utf-8"))
+
+                found_route["Negara Destinasi"] = negara_desitnasi
+
+                # Mencari kode negara berdasarkan destinasi
+                country_codes = {
+                    "Brunei Darussalam": "BWN",
+                    "Kamboja": "KHM",
+                    "Indonesia": "IDN",
+                    "Lao PDR": "LAO",
+                    "Malaysia": "MYS",
+                    "Myanmar": "MMR",
+                    "Filipina": "PHL",
+                    "Singapura": "SIN",
+                    "Thailand": "THA",
+                    "Vietnam": "VNM",
+                }
+
+                if negara_desitnasi in country_codes:
+                    country_code = country_codes[negara_desitnasi]
+                else:
+                    country_code = "UNK"  # Jika negara tidak ditemukan, gunakan kode "UNK"
+
+                kode_penerbangan = found_route["Kode Penerbangan"]
+                kode_penerbangan_baru = country_code + kode_penerbangan[3:]
+                found_route["Kode Penerbangan"] = kode_penerbangan_baru
+
+            # update tanggal keberangkatan
+            elif option == "5":
+                conn.sendall("Masukkan Tanggal Penerbangan baru: (YYYY-MM-DD)".encode("utf-8"))
+                jadwal_keberangkatan = conn.recv(1024).decode("utf-8").strip()
+
+                # Validasi format tanggal ISO untuk jadwal penerbangan
+                iso_date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+                while not iso_date_pattern.match(jadwal_penerbangan):
+                    conn.sendall("Format tanggal penerbangan tidak valid. Harap masukkan tanggal dalam format YYYY-MM-DD.\n"
+                        "Input Jadwal Penerbangan (YYYY-MM-DD): ".encode("utf-8"))  # Kirim pesan ke klien
+                    jadwal_penerbangan = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
+
+                # Validasi tanggal penerbangan lebih besar dari tanggal sistem
+                today_date = datetime.date.today()
+                flight_date = datetime.datetime.strptime(jadwal_penerbangan, "%Y-%m-%d").date()
+                while flight_date <= today_date:
+                    conn.sendall(
+                        "Tanggal penerbangan tidak valid. Tanggal penerbangan harus lebih besar dari tanggal hari ini.\n"
+                        "Input Jadwal Penerbangan (YYYY-MM-DD): ".encode("utf-8")
+                    )  # Kirim pesan ke klien
+                    jadwal_penerbangan = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
+                    flight_date = datetime.datetime.strptime(jadwal_penerbangan, "%Y-%m-%d").date()
+
+                found_route["Tanggal Penerbangan"] = jadwal_keberangkatan
             else:
-              conn.sendall('{}'.format(k4).encode('utf-8'))
+                conn.sendall(f"{k4}\n{k1}\n{k2}".encode("utf-8"))
+                return
 
-        self.lock.release()    
+            with self.lock:
+                # Update file JSON
+                for idx, route in enumerate(routes):
+                    if route["Kode Penerbangan"] == code:
+                        routes[idx] = found_route
+                        break
+                with open("route.json", "w") as file:
+                    json.dump(routes, file, indent=4)
 
-    #apothikeuei Route sthn list
-    def update_field(self,conn,fly,index,i,ip):
-             conn.sendall('Give the new {}:'.format(i).encode('utf-8'))
-             update = conn.recv(1204).decode('utf-8')
-             if i == 'code':
-               fly.setcode(update)
-             elif i == 'state':
-               fly.setstate(update)
-             else:
-               fly.setTime(update)
-             self.list[index] = fly
-             random_number = random.randint(5,10)      
-             time.sleep(random_number)
-            #  print('client {} waited to update the route {} seconds'.format(ip,random_number))
-             print('[{}] client {} waited to update the route {} seconds'.format(datetime.datetime.now(), ip, random_number))
-             conn.sendall('Updated sucesfully!!!\n{}\n{}'.format(k1,k2).encode('utf-8'))
+            conn.sendall(f"Rute dengan Kode Penerbangan {code} berhasil diperbarui!\n{k1}\n{k2}".encode("utf-8"))
+            print(f"[{datetime.datetime.now()}] Client {ip} Memperbarui Rute dengan Kode Penerbangan {code}")
 
-
-    #anazhtei ama uparxei sugekrimeno route sthn lista
-    def search_list(self,code,i):
-
-       if i == 1: 
-        for route in self.list:
-            if route.getCode() == code:
-                return route
-        else:
-             return None
-       elif i == 2:
-         for route in self.list:
-            if route.getCode() == code:
-                self.list.remove(route)
-                return True
-         else:
-             return False
-       else:   
-            for index,route in enumerate(self.list):
-              if route.getCode() == code:
-                return route, index
-            return None,-1 
+        except Exception as e:
+            print(f"Gagal memperbarui data : {e}")
+            conn.sendall(f"Gagal memperbarui data dalam file JSON: {e}\n{k1}\n{k2}".encode("utf-8"))
 
     def read_all(self, conn, ip):
-      try:
-          with open('route.json', 'r') as file:
-              routes = json.load(file)
-              if routes:
-                  response = "Daftar Rute:\n"
-                  for route in routes:
-                      response += f"\nKode Penerbangan: {route['Kode Penerbangan']}\n"
-                      response += f"Kode Pesawat: {route['Kode Pesawat']}\n"
-                      response += f"Negara Keberangkatan: {route['Negara Keberangkatan']}\n"
-                      response += f"Waktu Penerbangan: {route['Waktu Penerbangan']}\n"
-                      response += f"Negara Destinasi: {route['Negara Destinasi']}\n"
-                      response += f"Tanggal Penerbangan: {route['Tanggal Penerbangan']}\n"
-                  response += f"\n{k1}\n{k2}"
-                  conn.sendall(response.encode('utf-8'))
-              else:
-                  conn.sendall(f"{k3}\n{k1}\n{k2}".encode('utf-8'))
-          print("[{}] Client {} Melihat Rute".format(datetime.datetime.now(), ip))
-      except Exception as e:
-          print(f'Gagal membaca data dari file JSON: {e}')          
+        try:
+            with open('route.json', 'r') as file:
+                routes = json.load(file)
+                if routes:
+                    response = "Daftar Rute:\n"
+                    for route in routes:
+                        response += f"\nKode Penerbangan: {route['Kode Penerbangan']}\n"
+                        response += f"Kode Pesawat: {route['Kode Pesawat']}\n"
+                        response += f"Negara Keberangkatan: {route['Negara Keberangkatan']}\n"
+                        response += f"Waktu Penerbangan: {route['Waktu Penerbangan']}\n"
+                        response += f"Negara Destinasi: {route['Negara Destinasi']}\n"
+                        response += f"Tanggal Penerbangan: {route['Tanggal Penerbangan']}\n"
+                    response += f"\n{k1}\n{k2}"
+                    conn.sendall(response.encode('utf-8'))
+                else:
+                    conn.sendall(f"{k3}\n{k1}\n{k2}".encode('utf-8'))
+            print("[{}] Client {} Melihat Rute".format(datetime.datetime.now(), ip))
+        except Exception as e:
+            print(f'Gagal membaca data dari file JSON: {e}')
 
-
-    def options(self,conn,ip):
-      
-     while True:       
-     
-       reply = conn.recv(1204).decode('utf-8')
-       
-              
-       if reply == '2':
-          self.read_all(conn, ip) 
-       elif reply == '1':
-           
-           self.create(conn,None,None,None,None, None, ip)
-       elif reply == '4':
-            self.delete(conn,ip)
-       elif reply == '3':
-            self.update(conn,ip)
-       elif reply == '5':
-            self.search(conn, ip)
-            break     
-       else:
-           conn.sendall('{}'.format(k4).encode('utf-8'))            
-     conn.close()      
+    def options(self, conn, ip):
+        while True:       
+            reply = conn.recv(1204).decode('utf-8')
+            if reply == '2':
+                self.read_all(conn, ip) 
+            elif reply == '1':
+                self.create(conn, None, None, None, None, None, ip)
+            elif reply == '4':
+                self.delete(conn, ip)
+            elif reply == '3':
+                self.update(conn, ip)
+            elif reply == '5':
+                self.search(conn, ip)
+            else:
+                conn.sendall('{}'.format(k4).encode('utf-8'))            
+        conn.close()      
 
     def connect_to_client(self):
         conne_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -319,11 +425,11 @@ class Server(object):
         print("Server is running...")
 
         while True:
-          conn, ip = conne_socket.accept()
-          print('[{}] client {} connect with your server'.format(datetime.datetime.now(), ip))
-          threading.Thread(target=self.options,args=(conn,ip,)).start()
+            conn, ip = conne_socket.accept()
+            print('[{}] client {} connect with your server'.format(datetime.datetime.now(), ip))
+            threading.Thread(target=self.options, args=(conn, ip,)).start()
         conne_socket.close()
 
-if __name__  == "__main__":
+if __name__ == "__main__":
     server = Server()
     server.connect_to_client()
