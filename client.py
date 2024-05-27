@@ -30,7 +30,7 @@ class Client(object):
 def message():
     print('Hello Horanghae Air Group!!!')
     print('Apa yang ingin Anda lakukan?')
-    print('Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Cari: 5, Keluar: x')
+    print('1.Buat Route\n2.Lihat Semua Route\n3.Perbarui Route\n4.Hapus Route\n5.Cari Route\nx Keluar')
 
 if __name__ == "__main__":
     message()

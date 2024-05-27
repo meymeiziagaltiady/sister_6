@@ -11,7 +11,7 @@ from decorators import decorator_create
 import re
 
 k1 = 'Apa yang ingin Anda lakukan?'
-k2 = 'Buat: 1, Lihat: 2, Perbarui: 3, Hapus: 4, Cari: 5, Keluar: x'
+k2 = '1.Buat Route\n2.Lihat Semua Route\n3.Perbarui Route\n4.Hapus Route\n5.Cari Route\nx Keluar'
 k3 = 'Rute tidak ada!!!'
 k4 = 'Berikan nomor dari opsi!!!'
 
@@ -231,35 +231,37 @@ class Server(object):
                 return
 
             response = f"\nFound route:\n"
-            response += f"Kode Penerbangan: {found_route['Kode Penerbangan']}\n"
+            response += f"Kode Penerbangan: {found_route['Kode Penerbangan']} (tidak bisa diubah)\n"
             response += f"Kode Pesawat: {found_route['Kode Pesawat']}\n"
             response += f"Negara Keberangkatan: {found_route['Negara Keberangkatan']}\n"
             response += f"Waktu Penerbangan: {found_route['Waktu Penerbangan']}\n"
-            response += f"Negara Destinasi: {found_route['Negara Destinasi']}\n"
+            response += f"Negara Destinasi: {found_route['Negara Destinasi']} (tidak bisa diubah)\n"
             response += f"Tanggal Penerbangan: {found_route['Tanggal Penerbangan']}\n"
-            response += f"\nApa yang ingin diperbarui?\n1. Kode Pesawat\n2. Negara Keberangkatan\n3. Waktu Penerbangan\n4. Negara Destinasi\n5. Tanggal Penerbangan"
+            response += f"\nApa yang ingin diperbarui?\n1. Kode Pesawat\n2. Negara Keberangkatan\n3. Waktu Penerbangan\n4. Tanggal Penerbangan"
             conn.sendall(response.encode("utf-8"))
             option = conn.recv(1024).decode("utf-8").strip()
 
             # update kode pesawat
             if option == "1":
-                conn.sendall("Masukkan Kode Pesawat baru: (Contoh: ID-01)".encode("utf-8"))
+                conn.sendall("Masukkan Kode Pesawat baru (Contoh: ID-01): ".encode("utf-8"))
                 kode_pesawat = conn.recv(1024).decode("utf-8").strip()
                 kode_pattern = re.compile(r"^[A-Z]{2}-\d{2}$")
                 while not kode_pattern.match(kode_pesawat):
                     conn.sendall(                    "Format kode penerbangan tidak valid. Silakan masukkan kode dalam format seperti ID-01.\n"
-                        "Input Kode Pesawat baru (Contoh: ID-01): ".encode("utf-8"))  # Kirim pesan ke klien
+                        "Masukkan Kode Pesawat baru (Contoh: ID-01): ".encode("utf-8"))  # Kirim pesan ke klien
                     kode_pesawat = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
 
                 found_route["Kode Pesawat"] = kode_pesawat
 
             # update negara keberangkatan
             elif option == "2":
+                destination = found_route["Negara Destinasi"]
                 countries_message = "List negara SEA:\n"
-                for index, country in enumerate(asean_countries, start=1):
+                departure_option = [country for country in asean_countries if country != destination]
+                for index, country in enumerate(departure_option, start=1):
                     countries_message += f"{index}. {country}\n"
 
-                countries_message += "Input Negara Keberangkatan baru:"
+                countries_message += "Masukkan Negara Keberangkatan baru:"
 
                 conn.sendall(countries_message.encode("utf-8"))  # Kirim pesan ke klien
                 choice_dep = int(conn.recv(1204).decode("utf-8"))  # Terima pesan dari klien
@@ -267,83 +269,36 @@ class Server(object):
                 while True:
                     if 1 <= choice_dep <= len(asean_countries):
                         departure = asean_countries[choice_dep - 1]
-                        negara_keberangkatan = departure
                         break
                     else:
                         conn.sendall("Pilihan keberangkatan tidak valid. Silakan pilih lagi.\n".encode("utf-8"))  # Kirim pesan ke klien
                         choice_dep = int(conn.recv(1204).decode("utf-8"))  # Terima pesan dari klien
 
-                found_route["Negara Keberangkatan"] = negara_keberangkatan
+                found_route["Negara Keberangkatan"] = departure
 
             # update waktu keberangkatan
             elif option == "3":
-                conn.sendall("Masukkan Waktu Penerbangan baru: (HH:MM)".encode("utf-8"))
+                conn.sendall("Masukkan Waktu Penerbangan baru (HH:MM): ".encode("utf-8"))
                 waktu_keberangkatan = conn.recv(1024).decode("utf-8").strip()
                 time_pattern = re.compile(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
                 # validasi format waktu
                 while not time_pattern.match(waktu_keberangkatan):
                     conn.sendall("Format waktu tidak valid. Harap masukkan waktu dalam format HH:MM.\n"
-                        "Input Waktu Keberangkatan (HH:MM): ".encode("utf-8"))  # Kirim pesan ke klien
+                        "Masukkan Waktu Penerbangan baru (HH:MM): ".encode("utf-8"))  # Kirim pesan ke klien
                     waktu_keberangkatan = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
 
                 found_route["Waktu Penerbangan"] = waktu_keberangkatan
 
-            # update destinasi
-            elif option == "4":
-                departure = found_route["Negara Keberangkatan"]
-                destination_message = "List negara SEA:\n"
-                destination_options = [country for country in asean_countries if country != departure]
-                for index, country in enumerate(destination_options, start=1):
-                    destination_message += f"{index}. {country}\n"
-                destination_message += "Input Negara Destinasi Baru:"
-
-                conn.sendall(destination_message.encode("utf-8"))  # Kirim pesan ke klien
-                choice_dest = int(conn.recv(1204).decode("utf-8"))  # Terima pesan dari klien
-
-                while True:
-                    if 1 <= choice_dest <= len(destination_options):
-                        destination = destination_options[choice_dest - 1]
-                        negara_desitnasi = destination
-                        break
-                    else:
-                        conn.sendall("Pilihan destinasi tidak valid. Silakan pilih lagi.\n".encode("utf-8"))  # Kirim pesan ke klien
-                        choice_dest = int(conn.recv(1204).decode("utf-8"))
-
-                found_route["Negara Destinasi"] = negara_desitnasi
-
-                # Mencari kode negara berdasarkan destinasi
-                country_codes = {
-                    "Brunei Darussalam": "BWN",
-                    "Kamboja": "KHM",
-                    "Indonesia": "IDN",
-                    "Lao PDR": "LAO",
-                    "Malaysia": "MYS",
-                    "Myanmar": "MMR",
-                    "Filipina": "PHL",
-                    "Singapura": "SIN",
-                    "Thailand": "THA",
-                    "Vietnam": "VNM",
-                }
-
-                if negara_desitnasi in country_codes:
-                    country_code = country_codes[negara_desitnasi]
-                else:
-                    country_code = "UNK"  # Jika negara tidak ditemukan, gunakan kode "UNK"
-
-                kode_penerbangan = found_route["Kode Penerbangan"]
-                kode_penerbangan_baru = country_code + kode_penerbangan[3:]
-                found_route["Kode Penerbangan"] = kode_penerbangan_baru
-
             # update tanggal keberangkatan
-            elif option == "5":
-                conn.sendall("Masukkan Tanggal Penerbangan baru: (YYYY-MM-DD)".encode("utf-8"))
-                jadwal_keberangkatan = conn.recv(1024).decode("utf-8").strip()
+            elif option == "4":
+                conn.sendall("Masukkan Tanggal Penerbangan baru (YYYY-MM-DD): ".encode("utf-8"))
+                jadwal_penerbangan = conn.recv(1024).decode("utf-8").strip()
 
                 # Validasi format tanggal ISO untuk jadwal penerbangan
                 iso_date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
                 while not iso_date_pattern.match(jadwal_penerbangan):
                     conn.sendall("Format tanggal penerbangan tidak valid. Harap masukkan tanggal dalam format YYYY-MM-DD.\n"
-                        "Input Jadwal Penerbangan (YYYY-MM-DD): ".encode("utf-8"))  # Kirim pesan ke klien
+                        "Masukkan Tanggal Penerbangan baru (YYYY-MM-DD): ".encode("utf-8"))  # Kirim pesan ke klien
                     jadwal_penerbangan = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
 
                 # Validasi tanggal penerbangan lebih besar dari tanggal sistem
@@ -352,12 +307,12 @@ class Server(object):
                 while flight_date <= today_date:
                     conn.sendall(
                         "Tanggal penerbangan tidak valid. Tanggal penerbangan harus lebih besar dari tanggal hari ini.\n"
-                        "Input Jadwal Penerbangan (YYYY-MM-DD): ".encode("utf-8")
+                        "Masukkan Tanggal Penerbangan baru (YYYY-MM-DD): ".encode("utf-8")
                     )  # Kirim pesan ke klien
                     jadwal_penerbangan = conn.recv(1204).decode("utf-8")  # Terima pesan dari klien
                     flight_date = datetime.datetime.strptime(jadwal_penerbangan, "%Y-%m-%d").date()
 
-                found_route["Tanggal Penerbangan"] = jadwal_keberangkatan
+                found_route["Tanggal Penerbangan"] = jadwal_penerbangan
             else:
                 conn.sendall(f"{k4}\n{k1}\n{k2}".encode("utf-8"))
                 return
