@@ -1,57 +1,67 @@
 class Route(object):
 
-  last_code = 0
+    # Variabel kelas untuk menyimpan kode terakhir yang digunakan
+    last_code = 0
 
-  def __init__(self):
-      self.code = None
-      self.departure = None
-      self.time = None
-      self.destination = None
-      self.flightDate = None
-      self.auto_code = None
+    # Inisialisasi objek Route
+    def _init__(self, code, departure, time, destination, flightDate):
+        self.code = None
+        self.departure = None
+        self.time = None
+        self.destination = None
+        self.flightDate = None
+        self.auto_code = None
 
-  @staticmethod
-  def generate_auto_code():
-      # Increment the last_code and return it as the new flight code
-      Route.last_code += 1
-      return Route.last_code
+    # Metode statis untuk menghasilkan kode otomatis
+    @staticmethod
+    def generate_auto_code():
+        # Menambah last_code dan mengembalikannya sebagai kode penerbangan baru
+        Route.last_code += 1
+        return Route.last_code
 
-  def setcode(self,code):
-    self.code = code
+    # Metode untuk mengatur kode penerbangan
+    def setcode(self, code):
+        self.code = code
 
-  def setDeparture(self,departure):
-    self.departure = departure
+    # Metode untuk mengatur tempat keberangkatan
+    def setDeparture(self, departure):
+        self.departure = departure
 
-  def setTime(self,time):
-    self.time = time 
-  
-  def setDestination(self,destination):
-    self.destination = destination
+    # Metode untuk mengatur waktu keberangkatan
+    def setTime(self, time):
+        self.time = time 
 
-  def setFlightDate(self,flightDate):
-    self.flightDate = flightDate
+    # Metode untuk mengatur tujuan penerbangan
+    def setDestination(self, destination):
+        self.destination = destination
 
-  def getCode(self):
-    return self.code   
+    # Metode untuk mengatur tanggal penerbangan
+    def setFlightDate(self, flightDate):
+        self.flightDate = flightDate
 
+    # Metode untuk mendapatkan kode penerbangan
+    def getCode(self):
+        return self.code
 
-  def getTime(self):
-    return self.time  
-  
-  def getDestination(self):
-    return self.destination
-  
-  def getDeparture(self):
-    return self.departure
-  
-  def getFlightDate(self):
-    return self.flightDate
+    # Metode untuk mendapatkan waktu keberangkatan
+    def getTime(self):
+        return self.time  
 
-  def shaw(self):
-    print(self.code + self.departure + self.time + self.destination + self.flightDate + self.auto_code)
+    # Metode untuk mendapatkan tujuan penerbangan
+    def getDestination(self):
+        return self.destination
 
-  
+    # Metode untuk mendapatkan tempat keberangkatan
+    def getDeparture(self):
+        return self.departure
+
+    # Metode untuk mendapatkan tanggal penerbangan
+    def getFlightDate(self):
+        return self.flightDate
+
+    # Metode untuk menampilkan informasi penerbangan
+    def shaw(self):
+        print(self.code + self.departure + self.time + self.destination + self.flightDate + self.auto_code)
+
 if __name__ == "__main__":
     pass
-
-
